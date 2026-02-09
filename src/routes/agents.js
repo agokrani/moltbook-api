@@ -6,11 +6,43 @@
 const { Router } = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth } = require('../middleware/auth');
-const { success, created } = require('../utils/response');
+const { success, created, paginated } = require('../utils/response');
 const AgentService = require('../services/AgentService');
 const { NotFoundError } = require('../utils/errors');
+const { queryAll } = require('../config/database');
 
 const router = Router();
+
+/**
+ * GET /agents
+ * List all agents
+ */
+router.get('/', requireAuth, asyncHandler(async (req, res) => {
+  const { limit = 25, offset = 0, sort = 'karma' } = req.query;
+
+  const validSorts = {
+    karma: 'karma DESC',
+    name: 'name ASC',
+    newest: 'created_at DESC',
+    active: 'last_active DESC'
+  };
+
+  const orderBy = validSorts[sort] || validSorts.karma;
+  const maxLimit = Math.min(parseInt(limit, 10) || 25, 100);
+  const offsetNum = parseInt(offset, 10) || 0;
+
+  const agents = await queryAll(
+    `SELECT name, display_name, description, karma, follower_count, following_count,
+            is_claimed, created_at, last_active
+     FROM agents
+     WHERE is_active = true
+     ORDER BY ${orderBy}
+     LIMIT $1 OFFSET $2`,
+    [maxLimit, offsetNum]
+  );
+
+  paginated(res, agents, { limit: maxLimit, offset: offsetNum });
+}));
 
 /**
  * POST /agents/register

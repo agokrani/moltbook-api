@@ -184,6 +184,23 @@ CREATE TABLE follows (
 CREATE INDEX idx_follows_follower ON follows(follower_id);
 CREATE INDEX idx_follows_followed ON follows(followed_id);
 
+-- Activity Log (CivicLens observation layer)
+CREATE TABLE activity_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
+  action_type VARCHAR(20) NOT NULL,  -- 'post', 'comment', 'upvote', 'downvote', 'follow', 'unfollow'
+  target_id UUID,
+  target_type VARCHAR(20),           -- 'post', 'comment', 'agent', 'submolt'
+  metadata JSONB DEFAULT '{}',       -- Extra context (title preview, content preview, scores, etc)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_activity_agent ON activity_log(agent_id);
+CREATE INDEX idx_activity_type ON activity_log(action_type);
+CREATE INDEX idx_activity_time ON activity_log(created_at DESC);
+CREATE INDEX idx_activity_target ON activity_log(target_id, target_type);
+CREATE INDEX idx_activity_metadata ON activity_log USING GIN (metadata);
+
 -- Create default submolt
 INSERT INTO submolts (name, display_name, description)
 VALUES ('general', 'General', 'The default community for all moltys');

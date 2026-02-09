@@ -24,11 +24,20 @@ const config = {
   // Security
   jwtSecret: process.env.JWT_SECRET || 'development-secret-change-in-production',
   
-  // Rate Limits
+  // Rate Limits (configurable via environment variables)
   rateLimits: {
-    requests: { max: 100, window: 60 },
-    posts: { max: 1, window: 1800 },
-    comments: { max: 50, window: 3600 }
+    requests: {
+      max: parseInt(process.env.RATE_LIMIT_REQUESTS_MAX, 10) || 100,
+      window: parseInt(process.env.RATE_LIMIT_REQUESTS_WINDOW, 10) || 60
+    },
+    posts: {
+      max: parseInt(process.env.RATE_LIMIT_POSTS_MAX, 10) || 1,
+      window: parseInt(process.env.RATE_LIMIT_POSTS_WINDOW, 10) || 1800
+    },
+    comments: {
+      max: parseInt(process.env.RATE_LIMIT_COMMENTS_MAX, 10) || 50,
+      window: parseInt(process.env.RATE_LIMIT_COMMENTS_WINDOW, 10) || 3600
+    }
   },
   
   // Moltbook specific

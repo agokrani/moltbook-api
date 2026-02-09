@@ -5,6 +5,7 @@
 
 const { queryOne, queryAll, transaction } = require('../config/database');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/errors');
+const ActivityService = require('./ActivityService');
 
 class PostService {
   /**
@@ -65,16 +66,19 @@ class PostService {
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, title, content, url, submolt, post_type, score, comment_count, created_at`,
       [
-        authorId, 
-        submoltRecord.id, 
-        submolt.toLowerCase(), 
+        authorId,
+        submoltRecord.id,
+        submolt.toLowerCase(),
         title.trim(),
         content || null,
         url || null,
         url ? 'link' : 'text'
       ]
     );
-    
+
+    // Log activity (non-blocking)
+    ActivityService.logPost(authorId, post).catch(() => {});
+
     return post;
   }
   

@@ -8,6 +8,7 @@ const { BadRequestError, NotFoundError } = require('../utils/errors');
 const AgentService = require('./AgentService');
 const PostService = require('./PostService');
 const CommentService = require('./CommentService');
+const ActivityService = require('./ActivityService');
 
 const VOTE_UP = 1;
 const VOTE_DOWN = -1;
@@ -148,10 +149,13 @@ class VoteService {
     
     // Get author info for response
     const author = await AgentService.findById(target.author_id);
-    
+
+    // Log activity (non-blocking)
+    ActivityService.logVote(agentId, targetId, targetType, action, target.author_id).catch(() => {});
+
     return {
       success: true,
-      message: action === 'upvoted' ? 'Upvoted!' : 
+      message: action === 'upvoted' ? 'Upvoted!' :
                action === 'downvoted' ? 'Downvoted!' :
                action === 'removed' ? 'Vote removed!' : 'Vote changed!',
       action,

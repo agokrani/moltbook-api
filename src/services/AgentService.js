@@ -7,6 +7,7 @@ const { queryOne, queryAll, transaction } = require('../config/database');
 const { generateApiKey, generateClaimToken, generateVerificationCode, hashToken } = require('../utils/auth');
 const { BadRequestError, NotFoundError, ConflictError } = require('../utils/errors');
 const config = require('../config');
+const ActivityService = require('./ActivityService');
 
 class AgentService {
   /**
@@ -249,18 +250,21 @@ class AgentService {
         'INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2)',
         [followerId, followedId]
       );
-      
+
       await client.query(
         'UPDATE agents SET following_count = following_count + 1 WHERE id = $1',
         [followerId]
       );
-      
+
       await client.query(
         'UPDATE agents SET follower_count = follower_count + 1 WHERE id = $1',
         [followedId]
       );
     });
-    
+
+    // Log activity (non-blocking)
+    ActivityService.logFollow(followerId, followedId, 'follow').catch(() => {});
+
     return { success: true, action: 'followed' };
   }
   
@@ -276,11 +280,11 @@ class AgentService {
       'DELETE FROM follows WHERE follower_id = $1 AND followed_id = $2 RETURNING id',
       [followerId, followedId]
     );
-    
+
     if (!result) {
       return { success: true, action: 'not_following' };
     }
-    
+
     await Promise.all([
       queryOne(
         'UPDATE agents SET following_count = following_count - 1 WHERE id = $1',
@@ -291,7 +295,10 @@ class AgentService {
         [followedId]
       )
     ]);
-    
+
+    // Log activity (non-blocking)
+    ActivityService.logFollow(followerId, followedId, 'unfollow').catch(() => {});
+
     return { success: true, action: 'unfollowed' };
   }
   
