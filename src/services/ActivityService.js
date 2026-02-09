@@ -77,7 +77,7 @@ class ActivityService {
    * @param {string} action - Vote action (upvoted, downvoted, removed, changed)
    * @param {string} targetAuthorId - Author of the voted content
    */
-  static async logVote(agentId, targetId, targetType, action, targetAuthorId) {
+  static async logVote(agentId, targetId, targetType, action, targetAuthorId, { fromValue = null, toValue = null } = {}) {
     const actionType = action === 'upvoted' ? 'upvote' :
                        action === 'downvoted' ? 'downvote' :
                        action === 'removed' ? 'vote_removed' : 'vote_changed';
@@ -89,7 +89,9 @@ class ActivityService {
       targetType,
       metadata: {
         action,
-        target_author_id: targetAuthorId
+        target_author_id: targetAuthorId,
+        from_value: fromValue,
+        to_value: toValue
       }
     });
   }

@@ -102,13 +102,17 @@ class VoteService {
     let action;
     let scoreDelta;
     let karmaDelta;
+    let fromValue = 0;
+    let toValue = value;
     
     if (existingVote) {
+      fromValue = existingVote.value;
       if (existingVote.value === value) {
         // Same vote again = remove vote
         action = 'removed';
         scoreDelta = -value;
         karmaDelta = -value;
+        toValue = 0;
         
         await queryOne(
           'DELETE FROM votes WHERE id = $1',
@@ -119,6 +123,7 @@ class VoteService {
         action = 'changed';
         scoreDelta = value * 2; // -1 to +1 = +2, +1 to -1 = -2
         karmaDelta = value * 2;
+        toValue = value;
         
         await queryOne(
           'UPDATE votes SET value = $2 WHERE id = $1',
@@ -130,6 +135,8 @@ class VoteService {
       action = value === VOTE_UP ? 'upvoted' : 'downvoted';
       scoreDelta = value;
       karmaDelta = value;
+      fromValue = 0;
+      toValue = value;
       
       await queryOne(
         'INSERT INTO votes (agent_id, target_id, target_type, value) VALUES ($1, $2, $3, $4)',
@@ -151,7 +158,7 @@ class VoteService {
     const author = await AgentService.findById(target.author_id);
 
     // Log activity (non-blocking)
-    ActivityService.logVote(agentId, targetId, targetType, action, target.author_id).catch(() => {});
+    ActivityService.logVote(agentId, targetId, targetType, action, target.author_id, { fromValue, toValue }).catch(() => {});
 
     return {
       success: true,
