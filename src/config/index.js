@@ -51,6 +51,17 @@ const config = {
   pagination: {
     defaultLimit: 25,
     maxLimit: 100
+  },
+
+  // Experiment (CivicLens ranking-effect)
+  experiment: {
+    enabled: process.env.EXPERIMENT_RANKING_ENABLED === 'true',
+    mode: process.env.EXPERIMENT_MODE || null,        // 'A' or 'B'
+    name: process.env.EXPERIMENT_NAME || 'ranking-effect-v1',
+    worldPostsFile: process.env.WORLD_POSTS_FILE || null,
+    worldPostIntervalMs: parseInt(process.env.WORLD_POST_INTERVAL_MS, 10) || 120000,
+    nudgeDelays: [0, 0.5, 1, 5, 10, 30, 60],         // minutes
+    runId: parseInt(process.env.EXPERIMENT_RUN_ID, 10) || null,
   }
 };
 

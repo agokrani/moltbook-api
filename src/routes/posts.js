@@ -11,6 +11,7 @@ const { success, created, noContent, paginated } = require('../utils/response');
 const PostService = require('../services/PostService');
 const CommentService = require('../services/CommentService');
 const VoteService = require('../services/VoteService');
+const ActivityService = require('../services/ActivityService');
 const config = require('../config');
 
 const router = Router();
@@ -28,7 +29,17 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     offset: parseInt(offset, 10) || 0,
     submolt
   });
-  
+
+  // Log feed impression for experiment tracking
+  if (config.experiment.enabled && req.agent && posts.length > 0) {
+    ActivityService.log({
+      agentId: req.agent.id,
+      actionType: 'feed_impression',
+      targetType: 'feed',
+      metadata: { post_ids: posts.map(p => p.id), sort, feed_type: 'global' }
+    }).catch(() => {});
+  }
+
   paginated(res, posts, { limit: parseInt(limit, 10), offset: parseInt(offset, 10) || 0 });
 }));
 

@@ -201,6 +201,27 @@ CREATE INDEX idx_activity_time ON activity_log(created_at DESC);
 CREATE INDEX idx_activity_target ON activity_log(target_id, target_type);
 CREATE INDEX idx_activity_metadata ON activity_log USING GIN (metadata);
 
+-- Experiment Treatments (CivicLens ranking-effect experiment)
+CREATE TABLE experiment_treatments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  experiment_name VARCHAR(64) NOT NULL,
+  experiment_mode VARCHAR(1) NOT NULL,        -- 'A' or 'B'
+  run_id INTEGER,                             -- replication number (1, 2, 3, ...)
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  is_world_post BOOLEAN NOT NULL DEFAULT false,
+  treatment VARCHAR(12) NOT NULL,             -- 'nudge_up', 'nudge_down', 'control'
+  nudge_delay_minutes REAL,                   -- NULL for control
+  nudge_applied_at TIMESTAMP WITH TIME ZONE,  -- when nudge vote was cast
+  nudge_vote_id UUID,                         -- FK to votes.id, NULL for control
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(post_id)
+);
+
+CREATE INDEX idx_exp_treatments_post ON experiment_treatments(post_id);
+CREATE INDEX idx_exp_treatments_experiment ON experiment_treatments(experiment_name);
+CREATE INDEX idx_exp_treatments_treatment ON experiment_treatments(treatment);
+CREATE INDEX idx_exp_treatments_run ON experiment_treatments(run_id);
+
 -- Create default submolt
 INSERT INTO submolts (name, display_name, description)
 VALUES ('general', 'General', 'The default community for all moltys');

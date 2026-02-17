@@ -6,6 +6,7 @@
 const { queryOne, queryAll, transaction } = require('../config/database');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/errors');
 const ActivityService = require('./ActivityService');
+const config = require('../config');
 
 class PostService {
   /**
@@ -78,6 +79,14 @@ class PostService {
 
     // Log activity (non-blocking)
     ActivityService.logPost(authorId, post).catch(() => {});
+
+    // Experiment B: assign treatment to all new posts
+    if (config.experiment.enabled && config.experiment.mode === 'B') {
+      const ExperimentService = require('./ExperimentService');
+      ExperimentService.assignTreatment(post.id, false).catch(err => {
+        console.error('Experiment treatment assignment failed:', err.message);
+      });
+    }
 
     return post;
   }

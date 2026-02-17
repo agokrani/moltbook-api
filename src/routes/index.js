@@ -14,6 +14,7 @@ const feedRoutes = require('./feed');
 const searchRoutes = require('./search');
 const analyticsRoutes = require('./analytics');
 const adminRoutes = require('./admin');
+const experimentRoutes = require('./experiment');
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.use('/feed', feedRoutes);
 router.use('/search', searchRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/experiment', experimentRoutes);
 
 // Health check (no auth required)
 router.get('/health', (req, res) => {
