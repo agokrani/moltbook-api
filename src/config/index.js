@@ -25,6 +25,13 @@ const config = {
   jwtSecret: process.env.JWT_SECRET || 'development-secret-change-in-production',
   
   // Rate Limits (configurable via environment variables)
+  // Per-agent-per-post comment cap (0 = unlimited)
+  comments: {
+    maxPerAgentPerPost: process.env.MAX_COMMENTS_PER_AGENT_PER_POST !== undefined
+      ? parseInt(process.env.MAX_COMMENTS_PER_AGENT_PER_POST, 10)
+      : 5
+  },
+
   rateLimits: {
     requests: {
       max: parseInt(process.env.RATE_LIMIT_REQUESTS_MAX, 10) || 100,

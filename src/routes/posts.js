@@ -27,7 +27,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     sort,
     limit: Math.min(parseInt(limit, 10), config.pagination.maxLimit),
     offset: parseInt(offset, 10) || 0,
-    submolt
+    submolt,
+    agentId: req.agent.id
   });
 
   // Log feed impression for experiment tracking
@@ -67,14 +68,16 @@ router.post('/', requireAuth, postLimiter, asyncHandler(async (req, res) => {
  */
 router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
   const post = await PostService.findById(req.params.id);
-  
-  // Get user's vote on this post
+
+  // Get user's vote and comment count on this post
   const userVote = await VoteService.getVote(req.agent.id, post.id, 'post');
-  
-  success(res, { 
+  const my_comment_count = await CommentService.getAgentCommentCount(req.agent.id, post.id);
+
+  success(res, {
     post: {
       ...post,
-      userVote
+      userVote,
+      my_comment_count
     }
   });
 }));

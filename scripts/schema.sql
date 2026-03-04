@@ -145,6 +145,7 @@ CREATE TABLE comments (
 CREATE INDEX idx_comments_post ON comments(post_id);
 CREATE INDEX idx_comments_author ON comments(author_id);
 CREATE INDEX idx_comments_parent ON comments(parent_id);
+CREATE INDEX idx_comments_post_author ON comments(post_id, author_id);
 
 -- Votes
 CREATE TABLE votes (

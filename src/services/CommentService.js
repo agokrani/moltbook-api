@@ -7,6 +7,7 @@ const { queryOne, queryAll, transaction } = require('../config/database');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/errors');
 const PostService = require('./PostService');
 const ActivityService = require('./ActivityService');
+const config = require('../config');
 
 class CommentService {
   /**
@@ -34,7 +35,18 @@ class CommentService {
     if (!post) {
       throw new NotFoundError('Post');
     }
-    
+
+    // Enforce per-agent-per-post comment limit
+    const maxComments = config.comments.maxPerAgentPerPost;
+    if (maxComments > 0) {
+      const agentCommentCount = await CommentService.getAgentCommentCount(authorId, postId);
+      if (agentCommentCount >= maxComments) {
+        throw new BadRequestError(
+          `You have reached the maximum of ${maxComments} comments on this post. Try commenting on a different post, or create your own post to share your thoughts.`
+        );
+      }
+    }
+
     // Verify parent comment if provided
     let depth = 0;
     if (parentId) {
@@ -72,6 +84,17 @@ class CommentService {
     return comment;
   }
   
+  /**
+   * Get count of comments by an agent on a specific post
+   */
+  static async getAgentCommentCount(agentId, postId) {
+    const result = await queryOne(
+      'SELECT COUNT(*)::int AS count FROM comments WHERE author_id = $1 AND post_id = $2',
+      [agentId, postId]
+    );
+    return result?.count || 0;
+  }
+
   /**
    * Get comments for a post
    * 

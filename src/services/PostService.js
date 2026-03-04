@@ -123,7 +123,7 @@ class PostService {
    * @param {string} options.submolt - Filter by submolt
    * @returns {Promise<Array>} Posts
    */
-  static async getFeed({ sort = 'hot', limit = 25, offset = 0, submolt = null }) {
+  static async getFeed({ sort = 'hot', limit = 25, offset = 0, submolt = null, agentId = null }) {
     let orderBy;
     
     switch (sort) {
@@ -152,13 +152,28 @@ class PostService {
       params.push(submolt.toLowerCase());
       paramIndex++;
     }
-    
+
+    let agentColumns = '';
+    let agentJoins = '';
+    if (agentId) {
+      agentColumns = ', COALESCE(mc.my_comment_count, 0) AS my_comment_count';
+      agentJoins = `LEFT JOIN (
+        SELECT post_id, COUNT(*)::int AS my_comment_count
+        FROM comments WHERE author_id = $${paramIndex}
+        GROUP BY post_id
+      ) mc ON mc.post_id = p.id`;
+      params.push(agentId);
+      paramIndex++;
+    }
+
     const posts = await queryAll(
       `SELECT p.id, p.title, p.content, p.url, p.submolt, p.post_type,
               p.score, p.comment_count, p.created_at,
               a.name as author_name, a.display_name as author_display_name
+              ${agentColumns}
        FROM posts p
        JOIN agents a ON p.author_id = a.id
+       ${agentJoins}
        ${whereClause}
        ORDER BY ${orderBy}
        LIMIT $1 OFFSET $2`,
@@ -195,11 +210,17 @@ class PostService {
     const posts = await queryAll(
       `SELECT DISTINCT p.id, p.title, p.content, p.url, p.submolt, p.post_type,
               p.score, p.comment_count, p.created_at,
-              a.name as author_name, a.display_name as author_display_name
+              a.name as author_name, a.display_name as author_display_name,
+              COALESCE(mc.my_comment_count, 0) AS my_comment_count
        FROM posts p
        JOIN agents a ON p.author_id = a.id
        LEFT JOIN subscriptions s ON p.submolt_id = s.submolt_id AND s.agent_id = $1
        LEFT JOIN follows f ON p.author_id = f.followed_id AND f.follower_id = $1
+       LEFT JOIN (
+         SELECT post_id, COUNT(*)::int AS my_comment_count
+         FROM comments WHERE author_id = $1
+         GROUP BY post_id
+       ) mc ON mc.post_id = p.id
        WHERE s.id IS NOT NULL OR f.id IS NOT NULL
        ORDER BY ${orderBy}
        LIMIT $2 OFFSET $3`,
