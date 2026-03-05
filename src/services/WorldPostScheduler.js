@@ -61,8 +61,16 @@ class WorldPostScheduler {
       return;
     }
 
+    // Skip posts already published (idempotency on container restart)
+    await this.skipAlreadyPublished();
+
+    if (this.queue.length === 0) {
+      console.log(`WorldPostScheduler: all posts already published (restart detected)`);
+      return;
+    }
+
     this.running = true;
-    console.log(`WorldPostScheduler started: ${this.queue.length} posts, interval=${this.intervalMs}ms`);
+    console.log(`WorldPostScheduler started: ${this.queue.length} posts remaining, interval=${this.intervalMs}ms`);
 
     // Publish first post immediately
     await this.publishNext();
@@ -76,6 +84,32 @@ class WorldPostScheduler {
           console.log(`WorldPostScheduler finished: all ${this.published} posts published`);
         }
       }, this.intervalMs);
+    }
+  }
+
+  /**
+   * Skip posts that were already published (handles container restarts)
+   */
+  async skipAlreadyPublished() {
+    const { queryAll } = require('../config/database');
+    const ExperimentService = require('./ExperimentService');
+    const worldAgentId = ExperimentService.getWorldAgentId();
+
+    if (!worldAgentId) return;
+
+    const existing = await queryAll(
+      'SELECT title FROM posts WHERE author_id = $1',
+      [worldAgentId]
+    );
+    const publishedTitles = new Set(existing.map(p => p.title));
+
+    const before = this.queue.length;
+    this.queue = this.queue.filter(p => !publishedTitles.has(p.title));
+    const skipped = before - this.queue.length;
+
+    if (skipped > 0) {
+      this.published = skipped;
+      console.log(`WorldPostScheduler: skipped ${skipped} already-published posts (restart recovery)`);
     }
   }
 

@@ -77,8 +77,13 @@ class ExperimentService {
    * @returns {Promise<Object>} Treatment record
    */
   static async assignTreatment(postId, isWorldPost) {
-    const treatments = ['nudge_up', 'nudge_down', 'control'];
-    const treatment = treatments[Math.floor(Math.random() * treatments.length)];
+    let treatment;
+    if (config.experiment.mode === 'C') {
+      treatment = 'control';  // Mode C: no nudges, all control
+    } else {
+      const treatments = ['nudge_up', 'nudge_down', 'control'];
+      treatment = treatments[Math.floor(Math.random() * treatments.length)];
+    }
 
     // Pick a random nudge delay from config
     const delays = config.experiment.nudgeDelays;
